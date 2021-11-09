@@ -27,41 +27,6 @@ path_to_file <- here("R", "make_disc_gamma.R")
 source(path_to_file)
 
 
-
-# ----------------------------------------------------------
-# Parameters (hard coded, should be arguments of a function)
-# ----------------------------------------------------------
-
-## basic repro number
-R_undetected <- 1.2
-
-## prop reduction of R when cases detected 
-intervention_efficacy <- 0.6
-
-## repro number when case is detected
-R_detected <- R_undetected * (1 - intervention_efficacy)
-
-
-## serial interval object
-## this is a distcrete object
-## $d is the pmf
-## $r is the rng
-serial_int <- make_disc_gamma(7, 3)
-
-## Daily rate of intro from reservoir
-r_daily_intro <- 0.05
-
-
-## Maximum duration of the simulation
-max_duration <- 365
-vec_time <- seq_len(max_duration)
-
-## Prop of cases detected
-p_detected <- 0.7
-
-
-
-
 # -------
 # Helpers
 # -------
@@ -81,8 +46,38 @@ draw_R <- function(n,
 }
 
 
+#------------------------------------------------
+# Define the function. Its inputs are as follows:
+#------------------------------------------------
+#
+# 1. R_undetected, the basic reproduction number when a case is undetected
+#
+# 2. intervention_efficacy, the prop reduction of R when cases detected 
+#
+# 3. serial_int, a distcrete object representing the serial interval
+#    Use the 'make_disc_gamma' function to create this object
+#
+# 4. r_daily_intro, the daily rate of intro from reservoir
+#
+# 5. max_duration, the maximum duration of the outbreak
+#
+# 6. p_detected, proportion of cases detected
 
 
+branching_process_model <- function(R_undetected, 
+                                    intervention_efficacy, 
+                                    serial_int, 
+                                    r_daily_intro, 
+                                    max_duration, 
+                                    p_detected
+                                    ) {
+
+  ## repro number when case is detected
+  R_detected <- R_undetected * (1 - intervention_efficacy)
+  
+  ## Creat a vector of times for the loop
+  vec_time <- seq_len(max_duration)
+  
 # --------------
 # Initialization
 # --------------
@@ -161,9 +156,10 @@ for (t in 2:max_duration) {
 
   # Step 4
   out <- bind_rows(out, new_cases)
-}
+    }
 
 
+} #end function here
 
 
 # ------------
