@@ -61,6 +61,28 @@ p_detected <- 0.7
 
 
 
+
+# -------
+# Helpers
+# -------
+# These are small functions to avoid repetitive code in the simulation
+
+# Draw individual R based on group values and frequencies
+# n: number of R values to draw
+draw_R <- function(n,
+                   group_R = c(R_detected, R_undetected),
+                   group_p = c(p_detected, 1 - p_detected)
+                   ) {
+  sample(
+    group_R,
+    size = n,
+    prob = group_p,
+    replace = TRUE)
+}
+
+
+
+
 # --------------
 # Initialization
 # --------------
@@ -80,10 +102,7 @@ out <- tibble(case_id = seq_along(intro_onset),
 
 ## Determine R for each case
 out <- mutate(out,
-              R = sample(c(R_undetected, R_detected),
-                         size = nrow(out),
-                         prob = c(1 - p_detected, p_detected),
-                         replace = TRUE)
+              R = draw_R(nrow(out))
               )
 
 
@@ -120,9 +139,8 @@ out <- mutate(out,
 #
 
 
-# Artificial: set current time
-# (this should be an iterator in a loop)
-t <- 2
+# Time iteration
+for (t in 2:max_duration) {
 
 # Step 1
 lambda_i <- out$R * serial_int$d(t - out$date_onset)
@@ -138,11 +156,9 @@ new_cases <- tibble(case_id = seq(from = last_id + 1,
                                   by = 1L),
                     date_onset = rep(t, n_new_cases))
 new_cases <- mutate(new_cases,
-              R = sample(c(R_undetected, R_detected),
-                         size = n_new_cases,
-                         prob = c(1 - p_detected, p_detected),
-                         replace = TRUE)
+              R = draw_R(n_new_cases)
               )
 
 # Step 4
 out <- bind_rows(out, new_cases)
+}
