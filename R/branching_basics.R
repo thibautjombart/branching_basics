@@ -109,9 +109,9 @@ out <- mutate(out,
 
 
 
-# -------------
-# One iteration
-# -------------
+# -------------------------------------
+# Time iteration: what happens each day
+# -------------------------------------
 
 # Here we generate new cases from a branching process using the state of 'out'
 # above. The algorithm is:
@@ -162,3 +162,14 @@ new_cases <- mutate(new_cases,
 # Step 4
 out <- bind_rows(out, new_cases)
 }
+
+
+
+
+# ------------
+# Check output
+# ------------
+library(incidence2)
+out %>%
+  incidence(date_onset, interval = 7) %>%
+  plot(title = "Simulated incidence", xlab = "Time")
