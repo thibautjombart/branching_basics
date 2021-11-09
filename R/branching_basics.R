@@ -141,26 +141,26 @@ out <- mutate(out,
 
 # Time iteration
 for (t in 2:max_duration) {
+  
+  # Step 1
+  lambda_i <- out$R * serial_int$d(t - out$date_onset)
+  force_infection <- sum(lambda_i)
 
-# Step 1
-lambda_i <- out$R * serial_int$d(t - out$date_onset)
-force_infection <- sum(lambda_i)
+  # Step 2
+  n_new_cases <- rpois(1, lambda = force_infection)
 
-# Step 2
-n_new_cases <- rpois(1, lambda = force_infection)
+  # Step 3
+  last_id <- max(out$case_id)
+  new_cases <- tibble(case_id = seq(from = last_id + 1,
+                                    length.out = n_new_cases,
+                                    by = 1L),
+                      date_onset = rep(t, n_new_cases))
+  new_cases <- mutate(new_cases,
+                      R = draw_R(n_new_cases)
+                      )
 
-# Step 3
-last_id <- max(out$case_id)
-new_cases <- tibble(case_id = seq(from = last_id + 1,
-                                  length.out = n_new_cases,
-                                  by = 1L),
-                    date_onset = rep(t, n_new_cases))
-new_cases <- mutate(new_cases,
-              R = draw_R(n_new_cases)
-              )
-
-# Step 4
-out <- bind_rows(out, new_cases)
+  # Step 4
+  out <- bind_rows(out, new_cases)
 }
 
 
