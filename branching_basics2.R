@@ -72,14 +72,17 @@ branching_process_model <- function(R_undetected,
                                     serial_int, 
                                     r_daily_intro, 
                                     max_duration, 
-                                    p_detected,
-                                    n_sim
+                                    p_detected=0.8,
+                                    n_sim=500
 ) {
   
-  ## repro number when case is detected
-  # R_detected <- R_undetected * (1 - intervention_efficacy)
+  source("make_disc_gamma.R")
+  serial_int <- make_disc_gamma(SI_mean, SI_sd)
   
-  ## Creat a vector of times for the loop
+  ## repro number when case is detected
+  R_detected <- R_undetected * (1 - intervention_efficacy)
+  
+  ## Create a vector of times for the loop
   vec_time <- seq_len(max_duration)
   
   df_out <- data.frame(matrix(ncol=4,nrow=0, dimnames=list(NULL, c("n_sim", "cases", "introductions","max_ons_date"))))
@@ -93,7 +96,7 @@ branching_process_model <- function(R_undetected,
   ## Introductions: we impose the first one on day 1, and others are drawn
   ## randomly
   
-  #for (count in 1:n_sim){
+
   
   library(foreach)
   library(doParallel)
@@ -106,10 +109,16 @@ branching_process_model <- function(R_undetected,
     parallel:::setDefaultClusterOptions(setup_strategy = "sequential")
   }
   
+  # Use foreach to loop around the following code n_sim times. 
+  # We will combine the results generated with 'cbind'
+  # The packages we require are 'tidyverse' and 'doParallel'
+  
+  
   df_result<-foreach(count = c(1:n_sim),.combine='cbind',.packages=c("tidyverse","doParallel")) %dopar% {
   
     
   n_daily_intro <- rpois(max_duration, r_daily_intro)
+  #Ensure there is one introduced case on the first day of the outbreak
   n_daily_intro[1] <- 1L
   intro_onset <- rep(vec_time, n_daily_intro)
   
@@ -125,7 +134,8 @@ branching_process_model <- function(R_undetected,
   )
   
   
-  
+  #Record the number of introductions: this is the number of rows in 'out'
+  n_intros <- nrow(out)
   
   
   # -------------------------------------
@@ -181,19 +191,25 @@ branching_process_model <- function(R_undetected,
     
     # Step 4
     out <- bind_rows(out, new_cases)
+    
+    
+    # Insert a break if we already have >500 cases
+    if (nrow(out)>500) {
+      break
+    }
   }
   
   # ------------
   # Check output
   # ------------
-  library(incidence2)
-  out %>%
-    incidence(date_onset, interval = 7) %>%
-    plot(title = "Simulated incidence", xlab = "Time")
+
   
   sim_number <- count
+  
+  #Total number of cases
   n_cases <- nrow(out)
-  n_intros <- as.data.frame(table(out$R))$Freq[1]
+  
+  #Last day of outbreak
   max_onset_date <- max(out$date_onset)
   
   df_out[count, ] <- c(sim_number, n_cases ,n_intros,max_onset_date)
