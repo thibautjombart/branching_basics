@@ -48,60 +48,84 @@ if(Sys.info()["user"]=="grain") {
  #Frankfurt
  max_duration <- 100 # 784
  mean_intro_rate <- 20/max_duration
+ max_cases <- 30
+ min_cases<-10
  
  
  #Marburg
  max_duration <- 25
  mean_intro_rate <- 4/max_duration  
+ max_cases <- 10
+ min_cases<-0
+ 
  
  #Belgrade
  max_duration <- 17
- mean_intro_rate <- 1/max_duration  
+ mean_intro_rate <- 1/max_duration 
+ max_cases <- 10
+ min_cases<-0
  
  #SA
  max_duration <- 30
  mean_intro_rate <- 1/max_duration  
+ max_cases <- 10
+ min_cases<-0
  
  
  #Kenya
  max_duration <- 38
- mean_intro_rate <- 1/(max_duration+26)  
+ mean_intro_rate <- 1/(max_duration+26) 
+ max_cases <- 10
+ min_cases<-0
  
  
  #Kenya2
  max_duration <- 10
  mean_intro_rate <- 1/(max_duration+26)  
- 
+ max_cases <- 10
+ min_cases<-0
  
  #DRC
  max_duration <- 784
  mean_intro_rate <- 50/max_duration 
- 
+ max_cases <- 200
+ min_cases<-100
  
  #Angola
  max_duration <- 270
  mean_intro_rate <- 1/(max_duration+30) 
- 
+ max_cases <- 500
+ min_cases<-200
  
  #Uganda07
  max_duration <- 4
  mean_intro_rate <- 2/max_duration
+ max_cases <- 10
+ min_cases<-0
  
  #Uganda08/09
  max_duration <- 180
  mean_intro_rate <- 2/max_duration
+ max_cases <- 10
+ min_cases<-0
  
  #Uganda12
  max_duration <- 115
  mean_intro_rate <- 1/max_duration
+ max_cases <- 50
+ min_cases <- 10
  
  #Uganda14
  max_duration <- 7
  mean_intro_rate <- 1/max_duration
+ max_cases <- 10
+ min_cases<-0
  
  #Uganda17
  max_duration <- 44
  mean_intro_rate <- 1/max_duration
+ max_cases <- 10
+ min_cases<-0
  
  R_undetected_all <- seq(1.0,1.6, by=0.1)
  intervention_efficacy_all<- seq(0,1,by=0.2)
