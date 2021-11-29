@@ -38,22 +38,99 @@ if(Sys.info()["user"]=="grain") {
  SI_mean <- 9.2
  SI_sd <- 4.4
  
- serial_int <- make_disc_gamma(SI_mean, SI_sd)
-
-
- max_duration <- 500
  
  p_detected <- 0.8
  n_sim <- 500
  
- R_undetected_all <- seq(1.2,2.0, by=0.1)
- R_detected_all <- seq(0.5,1.0, by=0.05)
- r_daily_intro_all <- seq(0,0.05, by=0.01)
  
- #foreach(i = c(1:length(R_undetected_all)),j=c(1:length(R_detected_all)),k=c(1:length(r_daily_intro_all)),.packages=c("tidyverse","doParallel","foreach","distcrete","epitrix") ) %dopar% { # Parallel code
-  for (i in 1:length(R_undetected_all)) {
-    for (j in 1:length(R_detected_all )) {
-      for (k in 1:length(r_daily_intro_all)) {
+ # Outbreak duration and introduction rate are outbreak-specific parameters
+ 
+ #Frankfurt
+ max_duration <- 100 # 784
+ mean_intro_rate <- 20/max_duration
+ 
+ 
+ #Marburg
+ max_duration <- 25
+ mean_intro_rate <- 4/max_duration  
+ 
+ #Belgrade
+ max_duration <- 17
+ mean_intro_rate <- 1/max_duration  
+ 
+ #SA
+ max_duration <- 30
+ mean_intro_rate <- 1/max_duration  
+ 
+ 
+ #Kenya
+ max_duration <- 38
+ mean_intro_rate <- 1/(max_duration+26)  
+ 
+ 
+ #Kenya2
+ max_duration <- 10
+ mean_intro_rate <- 1/(max_duration+26)  
+ 
+ 
+ #DRC
+ max_duration <- 784
+ mean_intro_rate <- 50/max_duration 
+ 
+ 
+ #Angola
+ max_duration <- 270
+ mean_intro_rate <- 1/(max_duration+30) 
+ 
+ 
+ #Uganda07
+ max_duration <- 4
+ mean_intro_rate <- 2/max_duration
+ 
+ #Uganda08/09
+ max_duration <- 180
+ mean_intro_rate <- 2/max_duration
+ 
+ #Uganda12
+ max_duration <- 115
+ mean_intro_rate <- 1/max_duration
+ 
+ #Uganda14
+ max_duration <- 7
+ mean_intro_rate <- 1/max_duration
+ 
+ #Uganda17
+ max_duration <- 44
+ mean_intro_rate <- 1/max_duration
+ 
+ R_undetected_all <- seq(1.0,1.6, by=0.1)
+ intervention_efficacy_all<- seq(0,1,by=0.2)
+ 
+ #draw from gamma distribution
+ r_daily_intro_all <- mean_intro_rate
+ 
+
+ 
+ R_Int_Intro_grid<- expand.grid(R_undetected = R_undetected_all, intervention_efficacy = intervention_efficacy_all, r_daily_intro=r_daily_intro_all)
+ 
+ source("branching_basics2.R")
+ 
+ 
+ 
+ R_Int_Intro_df<-as.data.frame(R_Int_Intro_grid)
+ 
+ future_mapply(branching_process_model,
+               R_undetected=R_Int_Intro_df$R_undetected,
+               intervention_efficacy=R_Int_Intro_df$intervention_efficacy, 
+               r_daily_intro=R_Int_Intro_df$r_daily_intro,
+               serial_int_mean=SI_mean, 
+               serial_int_sd=SI_sd,
+               max_duration)
+ 
+ 
+ 
+#####################################################
+ #Historical stuff
        
        R_undetected <- R_undetected_all[i]
        R_detected <- R_detected_all[j]
@@ -73,10 +150,6 @@ if(Sys.info()["user"]=="grain") {
                                         p_detected,
                                         n_sim)
 
-   }
-  }
- }
- 
-# }
+
 
  
