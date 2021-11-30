@@ -141,5 +141,24 @@ for (k in 1:length(temp_Angola)){
 }
 
 
+# Plot a histogram of the posterior distribution
+
+# Ignore NAs through !is.na
+
+#n_cases_Angola_No_Na <- list()
+
+for (k1 in 1:length(temp_Angola)){
+  
+  if(Non_Na_Elems[k1]==0){n_cases_Angola_No_Na<- -1}
+  else{
+n_cases_Angola_No_Na <- n_cases_Angola[k1][!is.na( n_cases_Angola[k1])]
+
+hist(n_cases_Angola_No_Na,xlab="Number of Cases",ylab="Frequency",main= "Histogram of Cases ")
+
+       }
+
+}
+
+
 
 #Do the above for other outbreaks 
