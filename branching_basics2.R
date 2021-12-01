@@ -72,7 +72,7 @@ branching_process_model <- function(R_undetected,
                                     serial_int, 
                                     r_daily_intro, 
                                     max_duration, 
-                                    p_detected=0.8,
+                                    p_detected,
                                     n_sim=500
 ) {
   
