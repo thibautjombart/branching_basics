@@ -7,6 +7,7 @@ library(here)
 library(tidyverse) # total overkill, we merely use tibble and dplyr
 library(foreach)
 library(doParallel)
+library(future.apply)
 registerDoParallel(cores=3)
 
 
@@ -96,12 +97,14 @@ if(Sys.info()["user"]=="grain") {
  mean_intro_rate <- 1/(max_duration+30) 
  max_cases <- 500
  min_cases<-200
+ p_detected <- 0.5 # 1/3 of cases occurred before WHO intervention
  
  #Uganda07
  max_duration <- 4
  mean_intro_rate <- 2/max_duration
  max_cases <- 10
  min_cases<-0
+ p_detected <- 0.8
  
  #Uganda08/09
  max_duration <- 180
@@ -114,12 +117,14 @@ if(Sys.info()["user"]=="grain") {
  mean_intro_rate <- 1/max_duration
  max_cases <- 50
  min_cases <- 10
+ p_detected <- 0.3
  
  #Uganda14
  max_duration <- 7
  mean_intro_rate <- 1/max_duration
  max_cases <- 10
  min_cases<-0
+ p_detected <- 0.8
  
  #Uganda17
  max_duration <- 44
