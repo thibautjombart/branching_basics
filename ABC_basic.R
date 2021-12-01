@@ -88,7 +88,7 @@ min_cases<-0
 
 
 #Load relevant results
-setwd("C:/Users/grain/Dropbox/Marburg/Marburg/DRC_Ebola_HC_transmission_model-master/output_results_marburg/Angola")
+setwd("C:/Users/grain/Dropbox/Marburg/Marburg/DRC_Ebola_HC_transmission_model-master/output_results_marburg/DRC")
 temp_Angola = list.files(pattern="*.csv")
 for (i in 1:length(temp_Angola)) assign(temp_Angola[i], read.csv(temp_Angola[i]))
 
@@ -142,6 +142,37 @@ for (k in 1:length(temp_Angola)){
 
 
 # Plot a histogram of the posterior distribution
+
+#Plot_Posterior <- data.frame()
+
+#Enter number of samples kept: increasing intervention_efficacy
+# ie c(3 1 82 407 290 44)
+#Must be in format_long
+Plot_Posterior <- data.frame("1.0" = c(Non_Na_Elems[1],Non_Na_Elems[3],Non_Na_Elems[4],Non_Na_Elems[5],Non_Na_Elems[6],Non_Na_Elems[2]),
+                             "1.1" = c(Non_Na_Elems[37],Non_Na_Elems[39],Non_Na_Elems[40],Non_Na_Elems[41],Non_Na_Elems[42],Non_Na_Elems[38]),
+                             "1.2" = c(Non_Na_Elems[31],Non_Na_Elems[33],Non_Na_Elems[34],Non_Na_Elems[35],Non_Na_Elems[36],Non_Na_Elems[32]),
+                             "1.3" = c(Non_Na_Elems[25],Non_Na_Elems[26],Non_Na_Elems[28],Non_Na_Elems[29],Non_Na_Elems[30],Non_Na_Elems[27]),
+                             "1.4" = c(Non_Na_Elems[19],Non_Na_Elems[20],Non_Na_Elems[22],Non_Na_Elems[23],Non_Na_Elems[24],Non_Na_Elems[21]),
+                             "1.5" = c(Non_Na_Elems[13],Non_Na_Elems[14],Non_Na_Elems[16],Non_Na_Elems[17],Non_Na_Elems[18],Non_Na_Elems[15]),
+                             "1.6" = c(Non_Na_Elems[7],Non_Na_Elems[8],Non_Na_Elems[10],Non_Na_Elems[11],Non_Na_Elems[12],Non_Na_Elems[9])) 
+
+library(plotly)
+plot_ly(
+  x = seq(from = 1, to = 1.6, by = 0.1), 
+  y = seq(from = 0, to = 1, by = 0.2), 
+  z =  data.matrix(Plot_Posterior),
+  type = 'mesh3d'
+) %>% 
+  add_surface() %>%
+  layout(
+    title = "",
+    scene = list(
+      xaxis = list(type = "log", title = "R for undetected cases"),
+      yaxis = list(type = "log", title = "Intervention Efficacy"),
+      zaxis = list(title = "Frequency"),
+      camera = list(eye = list(x = 1.95, y = -1.25, z = 1.25))
+    ))
+
 
 # Ignore NAs through !is.na
 
