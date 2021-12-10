@@ -68,12 +68,14 @@ source("make_disc_gamma.R")
 
 branching_process_model <- function(R_undetected, 
                                     intervention_efficacy,
-                                    R_detected,
-                                    serial_int, 
+                                    #R_detected,
+                                    #serial_int, 
+                                    serial_int_mean, 
+                                    serial_int_sd,
                                     r_daily_intro, 
                                     max_duration, 
                                     p_detected,
-                                    n_sim=500
+                                    n_sim
 ) {
   
   source("make_disc_gamma.R")
@@ -85,7 +87,7 @@ branching_process_model <- function(R_undetected,
   ## Create a vector of times for the loop
   vec_time <- seq_len(max_duration)
   
-  df_out <- data.frame(matrix(ncol=4,nrow=0, dimnames=list(NULL, c("n_sim", "cases", "introductions","max_ons_date"))))
+ # df_out <- data.frame(matrix(ncol=4,nrow=0, dimnames=list(NULL, c("n_sim", "cases", "introductions","max_ons_date"))))
   
   # --------------
   # Initialization
@@ -98,24 +100,23 @@ branching_process_model <- function(R_undetected,
   
 
   
-  library(foreach)
-  library(doParallel)
-  registerDoParallel(cores=2)
-  
-  ## WORKAROUND: https://github.com/rstudio/rstudio/issues/6692
-  ## Revert to 'sequential' setup of PSOCK cluster in RStudio Console on macOS and R 4.0.0
-  if (Sys.getenv("RSTUDIO") == "1" && !nzchar(Sys.getenv("RSTUDIO_TERM")) && 
-      Sys.info()["sysname"] == "Darwin" && getRversion() >= "4.0.0") {
-    parallel:::setDefaultClusterOptions(setup_strategy = "sequential")
-  }
+  # library(foreach)
+  # library(doParallel)
+  # registerDoParallel(cores=2)
+  # 
+  # ## WORKAROUND: https://github.com/rstudio/rstudio/issues/6692
+  # ## Revert to 'sequential' setup of PSOCK cluster in RStudio Console on macOS and R 4.0.0
+  # if (Sys.getenv("RSTUDIO") == "1" && !nzchar(Sys.getenv("RSTUDIO_TERM")) && 
+  #     Sys.info()["sysname"] == "Darwin" && getRversion() >= "4.0.0") {
+  #   parallel:::setDefaultClusterOptions(setup_strategy = "sequential")
+  # }
   
   # Use foreach to loop around the following code n_sim times. 
   # We will combine the results generated with 'cbind'
   # The packages we require are 'tidyverse' and 'doParallel'
   
   
-  df_result<-foreach(count = c(1:n_sim),.combine='cbind',.packages=c("tidyverse","doParallel")) %dopar% {
-  
+
     
   n_daily_intro <- rpois(max_duration, r_daily_intro)
   #Ensure there is one introduced case on the first day of the outbreak
@@ -204,7 +205,7 @@ branching_process_model <- function(R_undetected,
   # ------------
 
   
-  sim_number <- count
+ # sim_number <- count
   
   #Total number of cases
   n_cases <- nrow(out)
@@ -212,25 +213,31 @@ branching_process_model <- function(R_undetected,
   #Last day of outbreak
   max_onset_date <- max(out$date_onset)
   
-  df_out[count, ] <- c(sim_number, n_cases ,n_intros,max_onset_date)
+  #df_out[count, ] <- c(sim_number, n_cases ,n_intros,max_onset_date)
   
-  }
+
   
+  c(R_undetected,intervention_efficacy, n_cases)
+ 
   
-  df_res_trans<-t(df_result)
-  df_results<-as.data.frame(df_res_trans)
-  
-  df_results %>% 
-    rename(
-      sim_num = V1,
-      num_cases = V2,
-      num_intros = V3,
-      maxim_ons_date = V4
-    )
+ 
+
+  # df_res_trans<-t(df_result)
+  # df_results<-as.data.frame(df_res_trans)
+  # 
+  # df_results<- df_results %>% 
+  #   rename(
+  #     sim_num = V1,
+  #     num_cases = V2,
+  #     num_intros = V3,
+  #     maxim_ons_date = V4
+  #   )
+  # 
+  # df_results
   
   #write.csv(out,"Results",R_undetected,round(R_detected,2),round(r_daily_intro,2),".csv",sep="")
-  write.csv( df_results,file=paste0(outputs,"Results",
-                                    "R_u=",R_undetected,"R_d=",round(R_detected,3),"Intro=",r_daily_intro*100,".csv"))
+ # write.csv( df_results,file=paste0(outputs,"Results",
+#                                    "R_u=",R_undetected,"Eff=",intervention_efficacy,"Intro=",r_daily_intro*100,".csv"))
   
   # write.csv(output_df, file=paste0(outputs,"sims_ring_vac_only_P", 
   #                                  prop.ascertain*100, "_", paste("early_Guinea_Rmissed",format(round(r0_missed, 2), nsmall = 1),sep=""),
