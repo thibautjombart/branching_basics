@@ -159,9 +159,23 @@ branching_process_model <- function(R_undetected,
   for (t in 2:max_duration) {
     
     # Step 0: Modify R_detected
+    
+    #Change intervention efficacy to be time-varying (or keep as is)
     int_eff_daily <- intervention_efficacy # intervention_efficacy + (1 - intervention_efficacy)/(max_duration-1)
     
     #Current version assumes scale parameter is the same for all 3  distributions
+    
+    #scale parameter must stay constant, so we will calculate it once
+    #scale = Variance_time_start/ Mean_time_start
+    
+    #mean time for all 3 processes
+    time_total <- 30
+    #variance for all 3 processes
+    var_time <- 7
+    scale_gamma <- var_time/time_total
+    
+    
+    ## A. Time to ascertain
     time_ascert_daily_start <- 16
     
     time_ascert_daily_end <- 1
@@ -170,37 +184,42 @@ branching_process_model <- function(R_undetected,
     time_ascert_daily <- max(time_ascert_daily,time_ascert_daily_end)
     
     
+    #determine the shape parameter
+    # shape = scale^-1 * Mean_time
+    shape_gamma_ascert <- (scale_gamma)^(-1) * time_ascert_daily
+    
+    
+    ## B. Time to vaccinate
+    
     time_vacc_start <- 7
     time_vacc_end <- 1
     
     time_vacc <- time_vacc_start - (time_vacc_start-time_vacc_end)/(max_duration*0.25)*t
     time_vacc <- max(time_vacc, time_vacc_end)
     
+    #determine the shape parameter
+    # shape = scale^-1 * Mean_time
+    shape_gamma_time <- (scale_gamma)^(-1) * time_vacc
     
+    ##C. Time for vaccine to take effect
     #time for vaccine to take effect
     time_vacc_effect <- 7
+    var_vacc_effect <- time_vacc_effect/2
     
-    #total time required
-    time_total <- time_ascert_daily + time_vacc +time_vacc_effect
-    
-    var_time <- 7
-    time_total_start <- time_ascert_daily_start +
-                        time_vacc_start +
-                        time_vacc_effect
-    
-    #scale parameter must stay constant, so we will calculate it once
-    #scale = Variance_time_start/ Mean_time_start
-    scale_gamma <- var_time/time_total_start
     
     #determine the shape parameter
     # shape = scale^-1 * Mean_time
-    shape_gamma <- (scale_gamma)^(-1) * time_total
+    shape_gamma_effect <- (scale_gamma)^(-1) * time_vacc_effect
     
+    
+    #sum the 3 shape parameter values 
+    total_shape <- shape_gamma_ascert + shape_gamma_time +shape_gamma_effect
+
     
       #Assume scale parameters of the gamma distributions are the same
       #Use pgamma to determine the corresponding cdf
       x = seq(2, max_duration,1)
-      cdf = pgamma(x, shape=shape_gamma, scale=scale_gamma)
+      cdf = pgamma(x, shape=total_shape, scale=scale_gamma)
     cov_contacts <- cdf[t]
     
     R_detected <- ((1 - intervention_efficacy) * (1 - cov_contacts) * (1 - vac_eff)) * R_undetected
