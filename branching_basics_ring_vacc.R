@@ -27,27 +27,8 @@ library(minpack.lm)
 #path_to_file <- here("make_disc_gamma.R")
 #source(path_to_file)
 source("make_disc_gamma.R")
-
-
-
-# -------
-# Helpers
-# -------
-# These are small functions to avoid repetitive code in the simulation
-
-# Draw individual R based on group values and frequencies
-# n: number of R values to draw
-# draw_R <- function(n,
-#                    group_R = c(R_detected, R_undetected),
-#                    group_p = c(p_detected, 1 - p_detected)
-# ) {
-#   sample(
-#     group_R,
-#     size = n,
-#     prob = group_p,
-#     replace = TRUE)
-# }
-
+source("create_logistic_function2.R")
+source("helper_functions_marburg.R")
 
 
 
@@ -70,15 +51,14 @@ source("make_disc_gamma.R")
 
 
 branching_process_model_ring <- function(
-                                         R_undetected = 1.2, 
+                                         R_basic = 1.2, 
                                          intervention_efficacy = 0.75,
                                          serial_int_mean = 9, 
                                          serial_int_sd = 4,
-                                         r_daily_intro = 50/784, 
+                                         r_daily_intro = 50 / 784, 
                                          max_duration = 784,  
-                                         p_detected = 0.8,
                                          n_sim = 1,
-                                         cov_contacts = 0.5,
+                                         vacc_coverage = 0.75,
                                          max_vac_eff = 0.9 ,
                                          vacc_time_to_max = 12,
                                          vacc_delay_mean = 9.6,
@@ -88,15 +68,8 @@ branching_process_model_ring <- function(
                                 
 ) {
 
-  # Source external content
-  source("make_disc_gamma.R")
-  source("create_logistic_function2.R")
-  source("helper_functions_marburg.R")
-  
+  # Build serial interval distribution
   serial_int <- make_disc_gamma(serial_int_mean, serial_int_sd)
-  
-  
-
 
   # R for detected cases
     
@@ -109,16 +82,38 @@ branching_process_model_ring <- function(
                             serial_int_max)
   
   
-    ## repro number when case is detected
- 
-  R_detected                 <- ((1 - intervention_efficacy) *
-                                 (1 - vac_eff*cov_contacts)) *
-                                    R_undetected
+  # Define the different reproduction numbers
+
+  # R_basic: R in absence of intervention
+  # R_followed: R for cases who were followed (i.e. all cases but introductions)
+  # R_vaccinated: R for cases who were vaccinated 
+  R_followed <- R_basic * (1 - intervention_efficacy)
+  R_vaccinated <- R_followed * (1 - vac_eff)
+
+
+  # Function to draw status of new cases
+
+  # Note: this excludes introductions, which are determined at the beginning
+  draw_status <- function(n = 1) {
+    # Define probabilities of the different status
+    
+    # 'unreported': cases not reported
+    # 'followed': cases reported and followed (i.e. non-introductions) but not vaccinated
+    # 'vaccinated': cases reported, followed and vaccinated
+    status_values <- c("unreported", "followed", "vaccinated")
+    status_prob <- c(1 - reporting, # unreported
+                     reporting * (1 - vacc_coverage), # followed
+                     reporting * vacc_coverage) # vaccinated
+    sample(x = status_values,
+           prob = status_prob,
+           size = n,
+           replace = TRUE)
+  }
   
-  ## Create a vector of times for the loop
+  
+  # Create a vector of times for the loop
   vec_time <- seq_len(max_duration)
   
-  # df_out <- data.frame(matrix(ncol=4,nrow=0, dimnames=list(NULL, c("n_sim", "cases", "introductions","max_ons_date"))))
   
   # --------------
   # Initialization
@@ -134,24 +129,17 @@ branching_process_model_ring <- function(
   n_daily_intro[1] <- 1L
   intro_onset <- rep(vec_time, n_daily_intro)
   
-  library(tidyverse)
   ## Build a tibble - not absolutely needed, but nicer to inspect results
   out <- tibble::tibble(case_id = seq_along(intro_onset),
                         date_onset = intro_onset)
   
-  ## Determine R for each case
-
+  ## Introductions are not impacted by follow-up so have max R 
   out <- mutate(out,
-                R = draw_R(nrow(out),R_detected,R_undetected,p_detected=0),
-                status = draw_reported(nrow(out),
-                                       p_reporting = reporting)
-  )
+                R = R_basic,
+                status = "intro")
   
-  ## Make sure there is no intervention impact for unreported cases
-  out <- mutate(out,
-                R = if_else(status == "unreported", R_undetected, R))
   
-  #Record the number of introductions: this is the number of rows in 'out'
+  # Record the number of introductions: this is the number of rows in 'out'
   n_intros <- nrow(out)
   
   
@@ -194,18 +182,8 @@ branching_process_model_ring <- function(
                               vacc_delay_mean,
                               vacc_delay_sd,
                               serial_int_max)
-    
-    
-    R_detected <- ((1 - intervention_efficacy) *
-                     (1 - vac_eff*cov_contacts)) *
-                      R_undetected
-    
-    #Technically only need to calculate R for cases on and before the timestep
-    
-    # out <- mutate(out,
-    #               R = draw_R(nrow(out),R_detected,R_undetected,p_detected)
-    # )
-    # 
+        
+    # Technically only need to calculate R for cases on and before the timestep
     
     # Step 1
     lambda_i <- out$R * serial_int$d(t - out$date_onset)
@@ -215,54 +193,38 @@ branching_process_model_ring <- function(
     n_new_cases <- rpois(1, lambda = force_infection)
     
     # Step 3
-    
     last_id <- max(out$case_id)
     
-    new_cases <- tibble(case_id = seq(from = last_id + 1,
+    new_cases <- tibble(case_id = seq(from = last_id + 1L,
                                       length.out = n_new_cases,
                                       by = 1L),
                         date_onset = rep(t, n_new_cases))
-    
+
+    # determine status: unreported, followed or vaccinated
     new_cases <- mutate(new_cases,
-                        R = draw_R(n_new_cases,R_detected,
-                                   R_undetected,p_detected),
-                        status = draw_reported(nrow(new_cases),
-                                               p_reporting = reporting)
+                        status = draw_status(nrow(new_cases)),
+                        R = case_when(
+                          status == "unreported" ~ R_basic,
+                          status == "followed" ~ R_followed,
+                          status == "vaccinated" ~ R_vaccinated
+                        )
     )
                         
-                        
-              
-    
     # Step 4
     out <- bind_rows(out, new_cases)
     
-    ## Make sure there is no intervention impact for unreported cases
-    out <- mutate(out,
-                  R = if_else(status == "unreported", R_undetected, R))
-    
     
     # Insert a break if we already have >500 cases
-    if (nrow(out)>500) {
+    if (nrow(out) > 500) {
       break
     }
   }
-  
-  # ------------
-  # Check output
-  # ------------
-  
-  
-  # sim_number <- count
-  
-  #Total number of cases
-  n_cases <- nrow(out)
-  
-  #Last day of outbreak
-  max_onset_date <- max(out$date_onset)
-  
-  #df_out[count, ] <- c(sim_number, n_cases ,n_intros,max_onset_date)
-  
-  #library(incidence2)
+
+  # arrange cases by chronological order
+  out <- arrange(out, date_onset)
+
+  # redefine IDs to match chrono order
+  out <- mutate(out, case_id = seq_len(n()))
   out
  } #end function here
 
