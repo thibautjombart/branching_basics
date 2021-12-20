@@ -66,7 +66,7 @@ source("make_disc_gamma.R")
 # 6. p_detected, proportion of cases detected
 
 
-branching_process_model_ring <- function(R_undetected, 
+branching_process_model_mass <- function(R_undetected, 
                                     intervention_efficacy,
                                     #R_detected,
                                     #serial_int, 
@@ -76,47 +76,20 @@ branching_process_model_ring <- function(R_undetected,
                                     max_duration, 
                                     p_detected,
                                     n_sim,
-                                    cov_contacts,
-                                    max_vac_eff,
-                                    vacc_time_to_max,
-                                    vacc_delay_mean = 9.6,
-                                    vacc_delay_sd = 4.2,
-                                    serial_int_max = 21
-                                
+                                    p_vacc,
+                                    vacc_eff
+                                    
 ) {
   
   source("make_disc_gamma.R")
   serial_int <- make_disc_gamma(SI_mean, SI_sd)
   
+  ## repro number when case is detected
+  # R_detected <- R_undetected * (1 - intervention_efficacy) #<- without ring vaccination
   
-
-
-  #R for detected cases
+  #R_detected 
+  R_detected <- (1 - intervention_efficacy) * R_undetected
   
-  # First file just assumes 1 day at maximum vaccine efficacy
-  # source("create_logistic_function.R")
-  # 
-  # vac_eff <- make_logistic(max_vac_eff,
-  #                          vacc_time_to_max,
-  #                          vacc_delay_mean,
-  #                          vacc_delay_sd)
-  # 
-  
-  #This version assumes a much longer period at max vaccine efficacy
-  #Needs one more input - the max serial interval
-  source("create_logistic_function2.R")
-  vac_eff <- make_logistic2(max_vac_eff,
-                           vacc_time_to_max,
-                           vacc_delay_mean,
-                           vacc_delay_sd,
-                           serial_int_max)
-  
-  
-    ## repro number when case is detected
- 
-  R_detected                 <- ((1 - intervention_efficacy) *
-                                 (1 - vac_eff*cov_contacts)) *
-                                    R_undetected
   
   ## Create a vector of times for the loop
   vec_time <- seq_len(max_duration)
@@ -143,9 +116,26 @@ branching_process_model_ring <- function(R_undetected,
                         date_onset = intro_onset)
   
   ## Determine R for each case
-  source("helper_functions_marburg.R")
+  
+  #Four types of cases
+  
+  # 1: Naive case, not detected
+  R_undetected_unvacc <-  R_undetected
+                 
+  # 2: Naive case, but detected
+  R_detected_unvacc <- R_undetected * (1 - intervention_efficacy)
+  
+  # 3: Vaccinated case, not detected
+  R_undetected_vacc <- R_undetected * (1 - vacc_eff)
+  
+  #4: Vaccinated, detected case
+  R_detected_vacc <- R_undetected * (1 - intervention_efficacy) * (1 - vacc_eff)
+  
+  source("helper_functions_marburg_mass.R")
   out <- mutate(out,
-                R = draw_R(nrow(out),R_detected,R_undetected,p_detected)
+                R = draw_R_mass(nrow(out),R_detected_vacc,R_detected_unvacc,
+                           R_undetected_vacc,R_undetected_unvacc,
+                           p_detected,p_vacc)
   )
   
   
@@ -250,30 +240,14 @@ branching_process_model_ring <- function(R_undetected,
     #   cdf = pgamma(x, shape=total_shape, scale=scale_gamma)
     # cov_contacts <- cdf[t]
     
-    #Original make_logistic
-    # vac_eff <- make_logistic(max_vac_eff,
-    #                          vacc_time_to_max,
-    #                          vacc_delay_mean,
-    #                          vacc_delay_sd)
-    
-    #Prefer this version 
-    vac_eff <- make_logistic2(max_vac_eff,
-                             vacc_time_to_max,
-                             vacc_delay_mean,
-                             vacc_delay_sd,
-                             serial_int_max)
-    
-    
-    R_detected <- ((1 - intervention_efficacy) *
-                     (1 - vac_eff*cov_contacts)) *
-                      R_undetected
+   # R_detected <- ((1 - intervention_efficacy) * (1 - cov_contacts) * (1 - vac_eff)) * R_undetected
     
     #Technically only need to calculate R for cases on and before the timestep
-    
+    # 
     # out <- mutate(out,
     #               R = draw_R(nrow(out),R_detected,R_undetected,p_detected)
     # )
-    # 
+    
     
     # Step 1
     lambda_i <- out$R * serial_int$d(t - out$date_onset)
@@ -285,15 +259,14 @@ branching_process_model_ring <- function(R_undetected,
     # Step 3
     
     last_id <- max(out$case_id)
-    
     new_cases <- tibble(case_id = seq(from = last_id + 1,
                                       length.out = n_new_cases,
                                       by = 1L),
                         date_onset = rep(t, n_new_cases))
-    
     new_cases <- mutate(new_cases,
-                        R = draw_R(n_new_cases,R_detected,
-                                   R_undetected,p_detected)
+                        R = draw_R_mass(n_new_cases,R_detected_vacc,R_detected_unvacc,
+                                   R_undetected_vacc,R_undetected_unvacc,
+                                   p_detected,p_vacc)
     )
     
     # Step 4

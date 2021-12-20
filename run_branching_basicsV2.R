@@ -228,7 +228,7 @@ Non_Na_Elems<- 1-Na_Status
 
 
 
-R_Int_NonNAElems <- data.frame(df_results$points_sampled.R_und, df_results$points_sampled.R_eff,Non_Na_Elems) 
+R_Int_NonNAElems <- data.frame(df_results$points_sampled.R_und, df_results$points_sampled.R_eff,Non_Na_Elems,df_results$n_cases_sim) 
 
 library(tidyverse)
 library(MASS)
@@ -264,6 +264,8 @@ R_estimates <- branching_process_model(R_undetected,
                                        max_duration, 
                                        p_detected,
                                        n_sim)
+
+
 
 
 
