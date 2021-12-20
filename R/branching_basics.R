@@ -196,5 +196,5 @@ for (t in 2:max_duration) {
 # ------------
 library(incidence2)
 out %>%
-  incidence(date_onset, interval = 7) %>%
-  plot(title = "Simulated incidence", xlab = "Time")
+  incidence(date_onset, interval = 7, group = status) %>%
+  plot(title = "Simulated incidence", xlab = "Time", fill = status)
