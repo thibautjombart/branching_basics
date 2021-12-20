@@ -68,17 +68,17 @@ source("make_disc_gamma.R")
 
 
 branching_process_model_ring <- function(
-                                         R_undetected, 
-                                         intervention_efficacy,
-                                         serial_int_mean, 
-                                         serial_int_sd,
-                                         r_daily_intro, 
-                                         max_duration, 
-                                         p_detected,
-                                         n_sim,
-                                         cov_contacts,
-                                         max_vac_eff,
-                                         vacc_time_to_max,
+                                         R_undetected = 1.2, 
+                                         intervention_efficacy = 0.75,
+                                         serial_int_mean = 9, 
+                                         serial_int_sd = 4,
+                                         r_daily_intro = 50/784, 
+                                         max_duration = 784,  
+                                         p_detected = 0.8,
+                                         n_sim = 1,
+                                         cov_contacts = 0.5,
+                                         max_vac_eff = 0.9 ,
+                                         vacc_time_to_max = 12,
                                          vacc_delay_mean = 9.6,
                                          vacc_delay_sd = 4.2,
                                          serial_int_max = 21
@@ -88,6 +88,7 @@ branching_process_model_ring <- function(
   # Source external content
   source("make_disc_gamma.R")
   source("create_logistic_function2.R")
+  source("helper_functions_marburg.R")
   
   serial_int <- make_disc_gamma(serial_int_mean, serial_int_sd)
   
@@ -136,9 +137,9 @@ branching_process_model_ring <- function(
                         date_onset = intro_onset)
   
   ## Determine R for each case
-  source("helper_functions_marburg.R")
+
   out <- mutate(out,
-                R = draw_R(nrow(out),R_detected,R_undetected,p_detected)
+                R = draw_R(nrow(out),R_detected,R_undetected,p_detected=0)
   )
   
   
@@ -246,38 +247,6 @@ branching_process_model_ring <- function(
   
   #library(incidence2)
   out
-  # ret_inc <- out %>%
-  #   incidence(date_onset, interval = 7) %>%
-  #   plot(title = "Simulated incidence", xlab = "Time", ylab="New Cases")
-  
-  #c(R_undetected,intervention_efficacy, n_cases)
-  
-  
-  
-  
-  # df_res_trans<-t(df_result)
-  # df_results<-as.data.frame(df_res_trans)
-  # 
-  # df_results<- df_results %>% 
-  #   rename(
-  #     sim_num = V1,
-  #     num_cases = V2,
-  #     num_intros = V3,
-  #     maxim_ons_date = V4
-  #   )
-  # 
-  # df_results
-  
-  #write.csv(out,"Results",R_undetected,round(R_detected,2),round(r_daily_intro,2),".csv",sep="")
-  # write.csv( df_results,file=paste0(outputs,"Results",
-  #                                    "R_u=",R_undetected,"Eff=",intervention_efficacy,"Intro=",r_daily_intro*100,".csv"))
-  
-  # write.csv(output_df, file=paste0(outputs,"sims_ring_vac_only_P", 
-  #                                  prop.ascertain*100, "_", paste("early_Guinea_Rmissed",format(round(r0_missed, 2), nsmall = 1),sep=""),
-  #                                  paste("_Rwithin",format(round(r0_within_ring, 2), nsmall = 1),"_", sep=""),
-  #                                  cap_max_days,"d_",n.sim,".csv"), row.names=F)
-  # 
-  #file=paste(chains,"cluster_chainsV",wvacc,"_P",100*pr.id,"_nrun",10000+nrun,".csv",sep="")
-} #end function here
+ } #end function here
 
 

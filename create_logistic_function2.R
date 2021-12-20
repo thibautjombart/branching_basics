@@ -90,7 +90,7 @@ make_logistic2  <- function(max_VE,
   #vacc_eff <-sample(VE_values, n_draws) 
   
   
-  return(vac_eff)
+  return(vacc_eff)
   
   
 }
