@@ -49,6 +49,8 @@ source("make_disc_gamma.R")
 # }
 
 
+
+
 #------------------------------------------------
 # Define the function. Its inputs are as follows:
 #------------------------------------------------
@@ -81,7 +83,8 @@ branching_process_model_ring <- function(
                                          vacc_time_to_max = 12,
                                          vacc_delay_mean = 9.6,
                                          vacc_delay_sd = 4.2,
-                                         serial_int_max = 21
+                                         serial_int_max = 21,
+                                         reporting = 0.8
                                 
 ) {
 
@@ -139,9 +142,14 @@ branching_process_model_ring <- function(
   ## Determine R for each case
 
   out <- mutate(out,
-                R = draw_R(nrow(out),R_detected,R_undetected,p_detected=0)
+                R = draw_R(nrow(out),R_detected,R_undetected,p_detected=0),
+                status = draw_reported(nrow(out),
+                                       p_reporting = reporting)
   )
   
+  ## Make sure there is no intervention impact for unreported cases
+  out <- mutate(out,
+                R = if_else(status == "unreported", R_undetected, R))
   
   #Record the number of introductions: this is the number of rows in 'out'
   n_intros <- nrow(out)
@@ -217,11 +225,20 @@ branching_process_model_ring <- function(
     
     new_cases <- mutate(new_cases,
                         R = draw_R(n_new_cases,R_detected,
-                                   R_undetected,p_detected)
+                                   R_undetected,p_detected),
+                        status = draw_reported(nrow(new_cases),
+                                               p_reporting = reporting)
     )
+                        
+                        
+              
     
     # Step 4
     out <- bind_rows(out, new_cases)
+    
+    ## Make sure there is no intervention impact for unreported cases
+    out <- mutate(out,
+                  R = if_else(status == "unreported", R_undetected, R))
     
     
     # Insert a break if we already have >500 cases

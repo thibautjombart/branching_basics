@@ -15,3 +15,12 @@ draw_R <- function(n,R_detected, R_undetected,p_detected
     prob = group_p,
     replace = TRUE)
 }
+
+
+# Draw status of cases: reported / unreported
+draw_reported <- function(n = 1, p_reporting = 1) {
+  sample(x = c("reported", "unreported"),
+         prob = c(p_reporting, 1 - p_reporting),
+         size = n,
+         replace = TRUE)
+}
