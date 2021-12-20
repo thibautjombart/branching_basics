@@ -41,6 +41,8 @@ intervention_efficacy <- 0.6
 ## repro number when case is detected
 R_detected <- R_undetected * (1 - intervention_efficacy)
 
+## reporting probability
+reporting <- 0.8
 
 ## serial interval object
 ## this is a distcrete object
@@ -69,6 +71,9 @@ p_detected <- 0.7
 
 # Draw individual R based on group values and frequencies
 # n: number of R values to draw
+
+# note: here p_detected means 'of reported cases, which ones are attended in
+# time for intervention to have efficacy'
 draw_R <- function(n,
                    group_R = c(R_detected, R_undetected),
                    group_p = c(p_detected, 1 - p_detected)
@@ -78,6 +83,15 @@ draw_R <- function(n,
     size = n,
     prob = group_p,
     replace = TRUE)
+}
+
+
+# Draw status of cases: reported / unreported
+draw_reported <- function(n = 1, p_reporting = 1) {
+  sample(x = c("reported", "unreported"),
+         prob = c(p_reporting, 1 - p_reporting),
+         size = n,
+         replace = TRUE)
 }
 
 
@@ -102,10 +116,14 @@ out <- tibble(case_id = seq_along(intro_onset),
 
 ## Determine R for each case
 out <- mutate(out,
-              R = draw_R(nrow(out))
+              R = draw_R(nrow(out)),
+              status = draw_reported(nrow(out),
+                                     p_reporting = reporting)
               )
 
-
+## Make sure there is no intervention impact for unreported cases
+out <- mutate(out,
+              R = if_else(status == "unreported", R_undetected, R))
 
 
 
@@ -156,11 +174,18 @@ for (t in 2:max_duration) {
                                     by = 1L),
                       date_onset = rep(t, n_new_cases))
   new_cases <- mutate(new_cases,
-                      R = draw_R(n_new_cases)
+                      R = draw_R(n_new_cases),
+                      status = draw_reported(nrow(new_cases),
+                                             p_reporting = reporting)
                       )
 
   # Step 4
   out <- bind_rows(out, new_cases)
+
+  ## Make sure there is no intervention impact for unreported cases
+  out <- mutate(out,
+                R = if_else(status == "unreported", R_undetected, R))
+
 }
 
 
