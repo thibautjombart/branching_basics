@@ -20,6 +20,7 @@ library(distcrete)
 library(epitrix)
 library(here)
 library(tidyverse) # total overkill, we merely use tibble and dplyr
+library(minpack.lm)
 
 # Source external script to make discretized Gammas which we can use for PMF and
 # for RNG
@@ -93,24 +94,15 @@ branching_process_model_ring <- function(
   
 
 
-  #R for detected cases
-  
-  # First file just assumes 1 day at maximum vaccine efficacy
-  # source("create_logistic_function.R")
-  # 
-  # vac_eff <- make_logistic(max_vac_eff,
-  #                          vacc_time_to_max,
-  #                          vacc_delay_mean,
-  #                          vacc_delay_sd)
-  # 
-  
-  #This version assumes a much longer period at max vaccine efficacy
-  #Needs one more input - the max serial interval
+  # R for detected cases
+    
+  # This version assumes a much longer period at max vaccine efficacy
+  # Needs one more input - the max serial interval
   vac_eff <- make_logistic2(max_vac_eff,
-                           vacc_time_to_max,
-                           vacc_delay_mean,
-                           vacc_delay_sd,
-                           serial_int_max)
+                            vacc_time_to_max,
+                            vacc_delay_mean,
+                            vacc_delay_sd,
+                            serial_int_max)
   
   
     ## repro number when case is detected
