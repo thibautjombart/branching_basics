@@ -29,7 +29,7 @@ library(minpack.lm)
 source("make_disc_gamma.R")
 source("create_logistic_function2.R")
 source("helper_functions_marburg.R")
-
+source("retry_fun_out.R")
 
 
 #------------------------------------------------
@@ -63,7 +63,7 @@ branching_process_model_ring <- function(
                                          vacc_time_to_max = 12,
                                          vacc_delay_mean = 9.6,
                                          vacc_delay_sd = 4.2,
-                                         serial_int_max = 21,
+                                         cluster_period = 30,
                                          reporting = 0.8
                                 
 ) {
@@ -71,15 +71,6 @@ branching_process_model_ring <- function(
   # Build serial interval distribution
   serial_int <- make_disc_gamma(serial_int_mean, serial_int_sd)
 
-  # R for detected cases
-    
-  # This version assumes a much longer period at max vaccine efficacy
-  # Needs one more input - the max serial interval
-  vac_eff <- make_logistic2(max_vac_eff,
-                            vacc_time_to_max,
-                            vacc_delay_mean,
-                            vacc_delay_sd,
-                            serial_int_max)
   
   
   # Define the different reproduction numbers
@@ -88,7 +79,8 @@ branching_process_model_ring <- function(
   # R_followed: R for cases who were followed (i.e. all cases but introductions)
   # R_vaccinated: R for cases who were vaccinated 
   R_followed <- R_basic * (1 - intervention_efficacy)
-  R_vaccinated <- R_followed * (1 - vac_eff)
+ 
+  # R_vaccinated <- R_followed * (1 - vac_eff)
 
 
   # Function to draw status of new cases
@@ -177,13 +169,22 @@ branching_process_model_ring <- function(
   for (t in 2:max_duration) {
     
     # Step 0: Modify R_detected
-    vac_eff <- make_logistic2(max_vac_eff,
-                              vacc_time_to_max,
-                              vacc_delay_mean,
-                              vacc_delay_sd,
-                              serial_int_max)
-        
+    
+    # At each time point, calculate vaccine efficacy, R for vaccinated cases,
+    # and use this R value for any new cases generated at that specific time
+    
+  
+    
+    vac_eff <- retryfun(make_logistic2(max_vac_eff,
+                                       vacc_time_to_max,
+                                       vacc_delay_mean = 9.6,
+                                       vacc_delay_sd = 4.2,),
+                                       max.iter=10)
+    
     # Technically only need to calculate R for cases on and before the timestep
+    
+    # Recalculate R_vaccinated each time we go around the loop
+    R_vaccinated <- R_followed * (1 - vac_eff)
     
     # Step 1
     lambda_i <- out$R * serial_int$d(t - out$date_onset)

@@ -2,7 +2,7 @@ make_logistic2  <- function(max_VE,
                            time_to_max,
                            vacc_delay_mean,
                            vacc_delay_sd,
-                           serial_int_max = 21,
+                           cluster_period = 30,
                            n_draws = 1) {
   
   # Delay in vaccination 
@@ -37,7 +37,7 @@ make_logistic2  <- function(max_VE,
   
   #days at maximum 
   days_at_max <- max(0,
-                     serial_int_max - (day_delay_det + delay_vacc_eff) )
+                     cluster_period - (day_delay_det + delay_vacc_eff) )
   
   
   if(days_at_max > 0){
@@ -54,12 +54,20 @@ make_logistic2  <- function(max_VE,
   #First the days
   day <- c(days_delay,  days_delay_vacc_eff, days_max_eff)
   
+  if(length(day)!= cluster_period){
+    day <- day[1:cluster_period]
+    
+  }
+  
   #day <- c(days_delay, days_max_eff)
   
   #Then the vaccine efficacy on each day
   vaccine_efficacy <- c(vacc_eff_start,vac_eff_2,vacc_eff_max_period)
   
-  #vaccine_efficacy <- c(vacc_eff_start,vacc_eff_max_period)
+  if( length(vaccine_efficacy) != cluster_period){
+    vaccine_efficacy <-  vaccine_efficacy[1:cluster_period]
+    
+  }
   
   vacc_eff_df <- data.frame(day,vaccine_efficacy)
   

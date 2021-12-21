@@ -27,12 +27,12 @@ source("branching_basics2.R")
 
  
 if(Sys.info()["user"]=="grain") {
-  wdir<-"C:/Users/grain/Dropbox/Marburg/Marburg/DRC_Ebola_HC_transmission_model-master"
+  wdir<-"C:/Users/grain/Dropbox/Marburg/Marburg/DRC_Ebola_HC_transmission_model-master/branching_basics"
   saved_files<-"C:/Users/grain/Dropbox/Marburg/Marburg/DRC_Ebola_HC_transmission_model-master"#"~/Documents/VEEPED/Ebola/Branching model with FOSA vac"
   setwd(wdir)
   outputs<-paste(saved_files,"/output_results_marburg/", sep="")
-  source(paste(wdir,"/ring_vaccine_multi_cluster_model_marburg.r", sep=""),local=TRUE) # Load model
-  chains<-paste(saved_files,"/output_chain_marburg/",sep="")
+ # source(paste(wdir,"/ring_vaccine_multi_cluster_model_marburg.r", sep=""),local=TRUE) # Load model
+#  chains<-paste(saved_files,"/output_chain_marburg/",sep="")
 }
 
 
@@ -41,7 +41,8 @@ if(Sys.info()["user"]=="grain") {
  
  
  p_detected <- 0.8
- n_sim <- 500
+ #Strategy: Try lower number of simulations in return for more parameter pairs
+ n_sim <- 50
  
  
  # Outbreak duration and introduction rate are outbreak-specific parameters
@@ -132,8 +133,8 @@ if(Sys.info()["user"]=="grain") {
  max_cases <- 10
  min_cases<-0
  
- R_undetected_all <- seq(1.0,1.6, by=0.1)
- intervention_efficacy_all<- seq(0,1,by=0.2)
+ R_undetected_all <- seq(0.8,1.6, by=0.1)
+ intervention_efficacy_all<- seq(0.6,1,by=0.1)
  
  #draw from gamma distribution
  r_daily_intro_all <- mean_intro_rate
@@ -143,7 +144,7 @@ if(Sys.info()["user"]=="grain") {
  R_Int_Intro_grid<- expand.grid(R_undetected = R_undetected_all, intervention_efficacy = intervention_efficacy_all, r_daily_intro=r_daily_intro_all)
  
  source("branching_basics2.R")
- 
+  
  
  
  R_Int_Intro_df<-as.data.frame(R_Int_Intro_grid)
@@ -151,10 +152,12 @@ if(Sys.info()["user"]=="grain") {
  future_mapply(branching_process_model,
                R_undetected=R_Int_Intro_df$R_undetected,
                intervention_efficacy=R_Int_Intro_df$intervention_efficacy, 
-               r_daily_intro=R_Int_Intro_df$r_daily_intro,
                serial_int_mean=SI_mean, 
                serial_int_sd=SI_sd,
-               max_duration)
+               r_daily_intro=R_Int_Intro_df$r_daily_intro,
+               max_duration=max_duration,
+               p_detected=p_detected,
+               n_sim=n_sim)
  
  
  

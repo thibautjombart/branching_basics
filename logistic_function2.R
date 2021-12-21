@@ -1,9 +1,12 @@
-###Log fit - be sure to use quotes around the variable names in the call
-log.fit2 <- function(dep, ind, yourdata){
+###Log fit - use quotes around the variable names 
+log.fit2 <- function(dep, ind, data){
   #Self-starting...
   
-  y <- yourdata[, dep]
-  x <- yourdata[, ind]
+  y <- data[, dep]
+  x <- data[, ind]
+  
+  
+  
   library(minpack.lm)
   log.ss <- nls(y ~ SSlogis(x, phi1, phi2, phi3))
   #log.ss <- nlsLM(y ~ SSlogis(x, phi1, phi2, phi3) ,alg="plinear")
