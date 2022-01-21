@@ -1,17 +1,24 @@
-make_logistic  <- function(max_VE=1,
+make_logistic  <- function(max_VE=0.9,
                             time_to_max=7,
-                            vacc_delay_mean=9.6,
-                            vacc_delay_sd=4.2,
-                            cluster_period = 30,
+                            mean_delay = 10,
+                            sd_delay = 4,
+                            cluster_period_act = 30,
                             n_draws = 1) {
+  
+  
+  if(max_VE==0){
+    vacc_eff = 0
+    return(vacc_eff)
+                }
+  
   
   # Delay in vaccination 
   
   #Draw this delay from a gamma distribution
-  shape_vacc_delay = vacc_delay_mean^2/vacc_delay_sd^2
-  scale_vacc_delay = vacc_delay_sd^2/vacc_delay_mean
+  #shape_vacc_delay = vacc_delay_mean^2/vacc_delay_sd^2
+  #scale_vacc_delay = vacc_delay_sd^2/vacc_delay_mean
   
-  vacc_delay <- rgamma(n=n_draws, shape=shape_vacc_delay,  scale = scale_vacc_delay)
+  vacc_delay <- 4 # rgamma(n=n_draws, shape=shape_vacc_delay,  scale = scale_vacc_delay)
   
   day_delay_det <- round(vacc_delay)
   days_delay <- seq(from=1,to=day_delay_det)
@@ -33,9 +40,10 @@ make_logistic  <- function(max_VE=1,
   
   
   #Vaccine efficacy between 0 and maximum efficacy
-  vac_eff_2 <- seq(from = 0, to = vacc_eff_max,length.out =delay_vacc_eff)
+  vac_eff_2 <- seq(from = 0, to = vacc_eff_max,length.out =delay_vacc_eff+1)
   
   #days at maximum 
+  cluster_period <- cluster_period_act + vacc_delay
   days_at_max <- max(0,
                      cluster_period - (day_delay_det + delay_vacc_eff) )
   
@@ -54,6 +62,8 @@ make_logistic  <- function(max_VE=1,
   #First the days
   day <- c(days_delay,  days_delay_vacc_eff, days_max_eff)
   
+  
+  
   if(length(day)!= cluster_period){
     day <- day[1:cluster_period]
     
@@ -64,34 +74,67 @@ make_logistic  <- function(max_VE=1,
   #Then the vaccine efficacy on each day
   vaccine_efficacy <- c(vacc_eff_start,vac_eff_2,vacc_eff_max_period)
   
+  
+  
   if( length(vaccine_efficacy) != cluster_period){
     vaccine_efficacy <-  vaccine_efficacy[1:cluster_period]
     
   }
   
   vacc_eff_df <- data.frame(day,vaccine_efficacy)
+ 
+  # source("logistic_function.R")
+  # 
+  # log_params <- log.fit('vaccine_efficacy','day',vacc_eff_df)
+  # 
+  # phi1 <- log_params$`Logistic Curve`[1]
+  # phi2 <- log_params$`Logistic Curve`[2]
+  # phi3 <- log_params$`Logistic Curve`[3]
+  # 
+  # #Find the average value
+  # 
+  # VE_values <- vector()
+  # 
+  # for (i in seq(vacc_eff_df$day)){
+  #   VE_values[i] <- phi1/ (1 + exp(-(i - phi2)/phi3 ))
+  # }
+  # 
+  # 
+  #find the parameters for the equation
+  SS<-getInitial(vaccine_efficacy~SSlogis(day,alpha,xmid,scale),data=  vacc_eff_df)
   
   
-  source("logistic_function.R")
   
-  log_params <- log.fit('vaccine_efficacy','day',vacc_eff_df)
+  #we used a different parametrization
+  K_start<-SS["alpha"]
+  R_start<-1/SS["scale"]
+  N0_start<-SS["alpha"]/(exp(SS["xmid"]/SS["scale"])+1)
+  #the formula for the model
+  log_formula<-formula(vaccine_efficacy~K*N0*exp(R*day)/(K+N0*(exp(R*day)-1)))
+  #fit the model
+  m<-nls(log_formula,start=list(K=K_start,R=R_start,N0=N0_start))
+  #estimated parameters
+  #summary(m)
+  #get some estimation of goodness of fit
+  #cor(vaccine_efficacy,predict(m))
   
-  phi1 <- log_params$`Logistic Curve`[1]
-  phi2 <- log_params$`Logistic Curve`[2]
-  phi3 <- log_params$`Logistic Curve`[3]
+  #plot(day,vaccine_efficacy)
+  #lines(day,predict(m),col="red",lty=2,lwd=3)
   
-  #Find the average value
+  efficacies<-predict(m)
+  efficacies_df <- data.frame(day,efficacies)
   
-  VE_values <- vector()
+  eff_dist<- tail(efficacies_df,-vacc_delay)
   
-  for (i in seq(vacc_eff_df$day)){
-    VE_values[i] <- phi1/ (1 + exp(-(i - phi2)/phi3 ))
-  }
+  eff_dist[,1] <- eff_dist[,1]-vacc_delay
   
   
+  #Draw delay from vaccination to infection from a normal distribution
   
-  #Calculate the mean
-  vacc_eff <- mean(VE_values)
+  vacc_delay <-  round(rnorm(n=n_draws, mean=mean_delay,  sd = sd_delay))
+  day_draw_min <- pmin(vacc_delay, cluster_period_act)
+  day_draw <- pmax(day_draw_min, 1)
+  vacc_eff<-pmin(1,eff_dist[day_draw,2]) 
   
   
   return(vacc_eff)
